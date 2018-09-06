@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-    policy._policy
+    policy.enforcer
     ~~~~~~~~~~~~~~~
 
-
+    Policy enforcer.
 
 """
 

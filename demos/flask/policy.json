@@ -3,5 +3,6 @@
   "is_user": "role:user or role:admin",
 
   "article:update": "rule:is_user",
+  "article:delete": "role:admin or id:%(user_id)s",
   "user:create": "rule:is_admin"
 }

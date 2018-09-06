@@ -11,6 +11,8 @@ import abc
 import ast
 from collections import Iterable
 
+from policy import _utils
+
 
 registered_checks = {}
 
@@ -205,16 +207,17 @@ class RuleCheck(Check):
 @register('role')
 class RoleCheck(Check):
     """Check whether thers is a matched role in the ``creds`` dict."""
+    ROLE_ATTRIBUTE = 'roles'
 
     def __call__(self, target, creds, enforcer):
         try:
-            match = self.match % target
+            match = self.match % _utils.dict_from_object(target)
         except KeyError:
             # if key not present in target return False
             return False
-        if 'roles' in creds:
-            return match.lower() in (x.lower() for x in creds['roles'])
-        return False
+        roles = _utils.xgetattr(creds, self.ROLE_ATTRIBUTE, None)
+        return (match.lower() in (role.lower() for role in roles)
+                if roles else False)
 
 
 @register(None)
@@ -229,29 +232,28 @@ class GenericChecker(Check):
         - 'Member':%(role.name)s
     """
 
-    def _find_in_dict(self, test_value, path_segments, match):
+    def _find_in_object(self, test_value, path_segments, match):
         if len(path_segments) == 0:
             return match == str(test_value)
 
         key, path_segments = path_segments[0], path_segments[1:]
         try:
-            test_value = test_value[key]
-        except KeyError:
+            test_value = _utils.xgetattr(test_value, key, getitem=True)
+        except (KeyError, AttributeError):
             return False
         if (isinstance(test_value, Iterable) and
                 not isinstance(test_value, (str, bytes))):
             for val in test_value:
-                if self._find_in_dict(val, path_segments, match):
+                if self._find_in_object(val, path_segments, match):
                     return True
             else:
                 return False
         else:
-            return self._find_in_dict(test_value, path_segments, match)
+            return self._find_in_object(test_value, path_segments, match)
 
     def __call__(self, target, creds, enforcer):
         try:
-            print('%r' % type(self.match), target)
-            match = self.match % target
+            match = self.match % _utils.dict_from_object(target)
         except KeyError:
             # if key not present in target return False
             return False
@@ -262,4 +264,4 @@ class GenericChecker(Check):
             pass
 
         path_segments = self.kind.split('.')
-        return self._find_in_dict(creds, path_segments, match)
+        return self._find_in_object(creds, path_segments, match)

@@ -117,7 +117,7 @@ class Parser(metaclass=ParserMeta):
     def _parse_check(self, rule):
         """Parse a single base check rule into an appropriate Check object."""
 
-        # Handle the special checks
+        # Handle the special constant-type checks
         for check_cls in (checks.FalseCheck, checks.TrueCheck):
             check = check_cls()
             if rule == str(check):
@@ -271,9 +271,3 @@ def parse_rule(rule: str, raise_error=False):
 
     parser = Parser(raise_error)
     return parser.parse(rule)
-
-
-if __name__ == '__main__':
-    _rule = 'rule:admin'
-    check = parse_rule(_rule)
-    print('%r' % check)
