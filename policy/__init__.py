@@ -6,4 +6,3 @@ __all__ = ['Enforcer', 'Rules', 'checks', 'exceptions']
 
 from policy.enforcer import Enforcer, Rules
 from policy import checks, exceptions
-

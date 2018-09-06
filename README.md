@@ -139,7 +139,7 @@ Then we head to http://127.0.0.1:8888/user?me=lily to simulate ``lily``'s creati
 
     user created
 
-### Fine-Grained
+#### Fine-Grained
 
 In some scenarios we want a fine-grained permission check. We enforce policy inside view ``delete_article``, because outside of it we can't know which article the user wants to delete.
 

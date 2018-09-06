@@ -8,6 +8,7 @@
 """
 
 import json
+import threading
 import logging
 
 from policy import checks, _parser, _cache
@@ -79,10 +80,25 @@ class Rules(dict):
 class Enforcer(object):
     """Responsible for loading and enforcing rules."""
 
-    def __init__(self, policy_file, rules=None, default_rule=None):
+    def __init__(self, policy_file, rules=None, default_rule=None,
+                 raise_error=False, load_once=True):
+        """
+        :param policy_file: the filename of policy file
+        :param rules: default rules
+        :param default_rule: default rule
+        :param raise_error: raise error on parsing rule and enforcing
+                            policy or not
+        :param load_once: load policy file just once
+        """
         self.default_rule = default_rule
         self.rules = Rules(rules, default_rule)
         self.policy_file = policy_file
+        self.raise_error = raise_error
+
+        self.load_once = load_once
+        self._policy_loaded = False
+        # Make rules loading thread-safe
+        self._load_lock = threading.Lock()
 
     def _set_rules(self, rules: dict, overwrite=True):
         """Created a new Rules object based on the provided dict of rules."""
@@ -96,19 +112,28 @@ class Enforcer(object):
         else:
             self.rules.update(rules)
 
-    def load_rules(self, force_reload=False, overwrite=True, raise_error=False):
-        reloaded, data = _cache.read_file(
-            self.policy_file, force_reload=force_reload)
-        if reloaded or not self.rules:
-            rules = Rules.load_json(data, self.default_rule, raise_error)
-            self._set_rules(rules, overwrite=overwrite)
-            LOG.debug('Reload policy file: %s', self.policy_file)
+    def load_rules(self, force_reload=False, overwrite=True):
+        """Load rules from policy file or cache."""
 
-    def enforce(self, rule, target, creds, raise_error=False,
-                exc=None, *args, **kwargs):
+        # double-checked locking
+        if self.load_once and self._policy_loaded:
+            return
+        with self._load_lock:
+            if self.load_once and self._policy_loaded:
+                return
+
+            reloaded, data = _cache.read_file(
+                self.policy_file, force_reload=force_reload)
+            self._policy_loaded = True
+            if reloaded or not self.rules:
+                rules = Rules.load_json(data, self.default_rule, self.raise_error)
+                self._set_rules(rules, overwrite=overwrite)
+                LOG.debug('Reload policy file: %s', self.policy_file)
+
+    def enforce(self, rule, target, creds, exc=None, *args, **kwargs):
         """Checks authorization of a rule against the target and credentials."""
 
-        self.load_rules(raise_error=raise_error)
+        self.load_rules()
 
         if isinstance(rule, checks.BaseCheck):
             result = rule(target, creds, self)
@@ -124,7 +149,7 @@ class Enforcer(object):
                 # If the rule doesn't exist, fail closed
                 result = False
 
-        if raise_error and not result:
+        if self.raise_error and not result:
             if exc:
                 raise exc(*args, **kwargs)
             else:
