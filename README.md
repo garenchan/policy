@@ -44,7 +44,7 @@ from policy import Enforcer
 from policy.exceptions import PolicyNotAuthorized
 
 app = Flask(__name__)
-enforcer = Enforcer('policy.json')
+enforcer = Enforcer('policy.json', raise_error=True)
 
 
 @app.errorhandler(PolicyNotAuthorized)
@@ -95,7 +95,7 @@ def enforce_policy(rule):
         """Decorator used for wrap API."""
         @functools.wraps(func)
         def wrapped(*args, **kwargs):
-            if enforcer.enforce(rule, {}, g.cred, raise_error=True):
+            if enforcer.enforce(rule, {}, g.cred):
                 return func(*args, **kwargs)
 
         return wrapped
@@ -118,7 +118,7 @@ def delete_article():
     article = articles.get(article_name)
 
     # do fine-grained permission check here
-    enforcer.enforce('article:delete', article, g.cred, raise_error=True)
+    enforcer.enforce('article:delete', article, g.cred)
     # do delete action here
     return 'arcticle %s deleted' % article['id']
 
