@@ -136,14 +136,14 @@ class Enforcer(object):
         self.load_rules()
 
         if isinstance(rule, checks.BaseCheck):
-            result = rule(target, creds, self)
+            result = rule(target, creds, self, rule)
         elif not self.rules:
             # No rules means we're going to fail closed.
             result = False
         else:
             try:
                 # Evaluate the rule
-                result = self.rules[rule](target, creds, self)
+                result = self.rules[rule](target, creds, self, rule)
             except KeyError:
                 LOG.debug('Rule [%s] does not exist', rule)
                 # If the rule doesn't exist, fail closed
