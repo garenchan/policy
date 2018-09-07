@@ -45,6 +45,7 @@ def get_long_description():
 def get_classifiers():
     return [
         'License :: OSI Approved :: Apache Software License',
+        'Topic :: Software Development :: Libraries :: Python Modules',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
@@ -76,7 +77,7 @@ if __name__ == '__main__':
         long_description_content_type='text/markdown',
         author='garenchan',
         author_email='1412950785@qq.com',
-        url='https://github.com/garenchan/policy.git',
+        url='https://github.com/garenchan/policy',
         license='http://www.apache.org/licenses/LICENSE-2.0',
         classifiers=get_classifiers(),
         packages=find_packages(),
