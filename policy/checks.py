@@ -26,7 +26,7 @@ class BaseCheck(metaclass=abc.ABCMeta):
         pass
 
     @abc.abstractmethod
-    def __call__(self, target, cred, enforcer):
+    def __call__(self, target, cred, enforcer, current_rule=None):
         """Triggers if instance of the class is called.
 
         Performs check. Returns False to reject the access or a
@@ -43,7 +43,7 @@ class FalseCheck(BaseCheck):
 
         return '!'
 
-    def __call__(self, target, cred, enforcer):
+    def __call__(self, target, cred, enforcer, current_rule=None):
         """Check the policy"""
 
         return False
@@ -57,7 +57,7 @@ class TrueCheck(BaseCheck):
 
         return '@'
 
-    def __call__(self, target, cred, enforcer):
+    def __call__(self, target, cred, enforcer, current_rule=None):
         """Check the policy"""
 
         return True
@@ -85,13 +85,13 @@ class NotCheck(BaseCheck):
 
         return 'not %s' % self.rule
 
-    def __call__(self, target, cred, enforcer):
+    def __call__(self, target, cred, enforcer, current_rule=None):
         """Check the policy.
 
         Returns the logical inverse of the wrapped check.
         """
 
-        return not self.rule(target, cred, enforcer)
+        return not self.rule(target, cred, enforcer, current_rule)
 
 
 class AndCheck(BaseCheck):
@@ -104,14 +104,14 @@ class AndCheck(BaseCheck):
 
         return '(%s)' % ' and '.join(str(rule) for rule in self.rules)
 
-    def __call__(self, target, cred, enforcer):
+    def __call__(self, target, cred, enforcer, current_rule=None):
         """Check the policy.
 
         Returns the logical AND of the wrapped checks.
         """
 
         for rule in self.rules:
-            if not rule(target, cred, enforcer):
+            if not rule(target, cred, enforcer, current_rule):
                 return False
         else:
             return True
@@ -139,14 +139,14 @@ class OrCheck(BaseCheck):
 
         return '(%s)' % ' or '.join(str(rule) for rule in self.rules)
 
-    def __call__(self, target, cred, enforcer):
+    def __call__(self, target, cred, enforcer, current_rule=None):
         """Check the policy.
 
         Returns the logical OR of the wrapped checks.
         """
 
         for rule in self.rules:
-            if rule(target, cred, enforcer):
+            if rule(target, cred, enforcer, current_rule):
                 return True
         else:
             return False
@@ -196,9 +196,10 @@ def register(name, _callable=None):
 @register('rule')
 class RuleCheck(Check):
 
-    def __call__(self, target, creds, enforcer):
+    def __call__(self, target, creds, enforcer, current_rule=None):
         try:
-            return enforcer.rules[self.match](target, creds, enforcer)
+            return enforcer.rules[self.match](
+                target, creds, enforcer, current_rule)
         except KeyError:
             # We don't have any matching rule; fail closed
             return False
@@ -209,7 +210,7 @@ class RoleCheck(Check):
     """Check whether thers is a matched role in the ``creds`` dict."""
     ROLE_ATTRIBUTE = 'roles'
 
-    def __call__(self, target, creds, enforcer):
+    def __call__(self, target, creds, enforcer, current_rule=None):
         try:
             match = self.match % _utils.dict_from_object(target)
         except KeyError:
@@ -251,7 +252,7 @@ class GenericChecker(Check):
         else:
             return self._find_in_object(test_value, path_segments, match)
 
-    def __call__(self, target, creds, enforcer):
+    def __call__(self, target, creds, enforcer, current_rule=None):
         try:
             match = self.match % _utils.dict_from_object(target)
         except KeyError:
