@@ -33,7 +33,7 @@ Based on the previous description, we generate the following policy file ``polic
 
 Suppose we have a simple ``Flask`` application which provides two api: creating new user and deleting article and we run it:
 
-```
+```python
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import functools
